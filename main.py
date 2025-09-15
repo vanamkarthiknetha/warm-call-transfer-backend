@@ -46,6 +46,13 @@ def get_token(
         .with_identity(identity)
         .with_name(name or identity)
         .with_grants(api.VideoGrants(room_join=True, room=room))
+        .with_room_config(
+            api.RoomConfiguration(
+                agents=[
+                    api.RoomAgentDispatch(agent_name="Warm-Transfer-Agent", metadata=f'{{"identity": "{identity}"}}')
+                ],
+            ),
+        )
     )
 
     data = {

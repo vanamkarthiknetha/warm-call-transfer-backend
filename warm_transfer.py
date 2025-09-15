@@ -23,7 +23,7 @@ from livekit.agents import (
 )
 from livekit.agents.llm import function_tool
 from livekit.plugins import deepgram, noise_cancellation, google, silero
-from livekit.plugins.turn_detector.english import EnglishModel
+from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("basic-agent")
 logger.setLevel(logging.DEBUG)
@@ -34,7 +34,7 @@ load_dotenv()
 # status enums representing the two sessions
 SupervisorStatus = Literal["inactive", "summarizing", "merged", "failed"]
 CustomerStatus = Literal["active", "escalated", "passive"]
-_supervisor_identity = "supervisor-sip"
+_supervisor_identity = "Human Agent"
 
 
 class SessionManager:
@@ -108,7 +108,7 @@ class SessionManager:
                 llm=_create_llm(),
                 stt=_create_stt(),
                 tts=_create_tts(),
-                turn_detection=EnglishModel(),
+                turn_detection=MultilingualModel(),
             )
 
             supervisor_agent = SupervisorAgent(prev_ctx=self.customer_session.history)
@@ -155,9 +155,10 @@ class SessionManager:
             self.supervisor_session = None
 
     async def merge_calls(self):
+        print("----->Merge calls called")
         if self.supervisor_status != "summarizing":
             return
-
+        print("----->Merging",_supervisor_identity, self.supervisor_room.name, self.customer_room.name)
         try:
             # we no longer care about the supervisor session. it's supposed to be over
             self.supervisor_room.off("disconnected", self.on_supervisor_room_close)
@@ -303,7 +304,7 @@ async def entrypoint(ctx: JobContext):
         llm=_create_llm(),
         stt=_create_stt(),
         tts=_create_tts(),
-        turn_detection=EnglishModel(),
+        turn_detection=MultilingualModel(),
     )
 
     support_agent = SupportAgent()
@@ -346,7 +347,7 @@ if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
-            # agent_name="Warm-Transfer-Agent",
+            agent_name="Warm-Transfer-Agent",
         )
     )
 
