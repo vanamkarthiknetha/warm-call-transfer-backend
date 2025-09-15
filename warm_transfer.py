@@ -31,6 +31,10 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 load_dotenv()
 
+# ensure the following variables/env vars are set
+SIP_TRUNK_ID = os.getenv("LIVEKIT_SIP_OUTBOUND_TRUNK")  # "ST_abcxyz"
+SUPERVISOR_PHONE_NUMBER = os.getenv("LIVEKIT_SUPERVISOR_PHONE_NUMBER")  # "+12003004000"
+
 # status enums representing the two sessions
 SupervisorStatus = Literal["inactive", "summarizing", "merged", "failed"]
 CustomerStatus = Literal["active", "escalated", "passive"]
@@ -48,6 +52,7 @@ class SessionManager:
         ctx: JobContext,
         customer_room: rtc.Room,
         customer_session: AgentSession,
+        supervisor_contact: str,
         lkapi: api.LiveKitAPI,
     ):
         self.ctx = ctx
@@ -58,6 +63,7 @@ class SessionManager:
 
         self.supervisor_session: AgentSession | None = None
         self.supervisor_room: rtc.Room | None = None
+        self.supervisor_contact = supervisor_contact
         self.lkapi = lkapi
 
         self.customer_status: CustomerStatus = "active"
@@ -120,6 +126,19 @@ class SessionManager:
                     close_on_disconnect=True,
                 ),
             )
+
+            # dial the supervisor if SUPERVISOR_PHONE_NUMBER is set
+            if self.supervisor_contact:
+                print("----> Calling supervisor", self.supervisor_contact)
+                await self.lkapi.sip.create_sip_participant(
+                    api.CreateSIPParticipantRequest(
+                        sip_trunk_id=SIP_TRUNK_ID,
+                        sip_call_to=self.supervisor_contact,
+                        room_name=supervisor_room_name,
+                        participant_identity=_supervisor_identity,
+                        wait_until_answered=True,
+                    )
+                )
             self.supervisor_status = "summarizing"
 
         except Exception:
@@ -322,6 +341,7 @@ async def entrypoint(ctx: JobContext):
         ctx=ctx,
         customer_room=ctx.room,
         customer_session=session,
+        supervisor_contact=SUPERVISOR_PHONE_NUMBER,
         lkapi=ctx.api,
     )
     support_agent.session_manager = session_manager
