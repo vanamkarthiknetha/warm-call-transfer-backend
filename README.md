@@ -50,7 +50,7 @@ HF_TOKEN=
 
 ```
 
-### 5. Download Related Files
+### 5.After setting up .env variables, Download Related Files
 ```bash
 python warm_transfer.py download-files
 ```
